@@ -1,13 +1,11 @@
 
-def validate_request_texto(texto):
-    if texto is None:
+def validate_request_description(texto):  
+    if not isinstance(texto, str):
         return False
-    texto_limpio = str(texto).strip()
-    if texto_limpio == "":
+    texto = texto.strip()
+    if texto == "":
         return False
-    if texto_limpio.isdigit():
-        return False
-    if len(texto_limpio) > 200:
+    if len(texto) > 200:
         return False
     return True
 
