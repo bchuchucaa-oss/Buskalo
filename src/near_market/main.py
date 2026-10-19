@@ -32,5 +32,5 @@ def request_by_id(request_id:UUID, db:Session = Depends(get_db)):
    return result
 
 @app.delete('/requests/{request_id}', status_code=status.HTTP_204_NO_CONTENT)
-def delete_request(id:UUID ,db: Session = Depends(get_db)):
-   delete_by_id(id,db)
+def delete_request(request_id:UUID ,db: Session = Depends(get_db)):
+   delete_by_id(request_id,db)
