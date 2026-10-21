@@ -2,16 +2,19 @@ from fastapi.testclient import TestClient
 from near_market.main import app
 import uuid
 
+
 client = TestClient(app)
 
 
-def test_create_request_valid():
+def test_create_request_valid(client, auth_headers):
+
     response = client.post(
         "/requests",
+        headers = auth_headers,
         json={
             "descripcion": "Busco un cargador USB-C",
             "ciudad":"Cuenca",
-             "categoria":"Electronicos"}
+             "categoria":"Electronicos",             }
     )
     assert response.status_code == 201
     data = response.json()
@@ -33,7 +36,13 @@ def test_create_request_blank_description():
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"] == "Descripcion invalida"
+    errors = response.json()["detail"]
+
+    assert any(
+        error["loc"][-1] == "descripcion"
+        and "no puede estar vacio" in error["msg"]
+        for error in errors
+    )
 
 
 def test_create_request_description_too_long():
@@ -109,3 +118,118 @@ def test_get_and_delete_request(client):
     missing_response = client.get(f"/requests/{request_id}")
     assert missing_response.status_code == 404
 
+
+import pytest
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("descripcion", "   "),
+        ("categoria", "   "),
+        ("ciudad", "   "),
+        ("descripcion", ""),
+        ("categoria", ""),
+        ("ciudad", ""),
+    ],
+)
+def test_create_request_rejects_empty_text(client, field, value):
+    payload = {
+        "descripcion": "Busco un cargador USB-C",
+        "categoria": "Electronica",
+        "ciudad": "Giron",
+    }
+
+    payload[field] = value
+
+    response = client.post("/requests", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_create_request_without_token_returns_401(client):
+    response = client.post(
+        "/requests",
+        json={
+            "descripcion": "Busco un cargador USB-C",
+            "ciudad": "Cuenca",
+            "categoria": "Electronicos",
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_user_cannot_access_another_users_request(
+    client,
+    auth_headers,
+    other_auth_headers,
+):
+    create_response = client.post(
+        "/requests",
+        headers=auth_headers,
+        json={
+            "descripcion": "Busco un cargador USB-C",
+            "ciudad": "Cuenca",
+            "categoria": "Electronicos",
+        },
+    )
+
+    assert create_response.status_code == 201, create_response.text
+    request_id = create_response.json()["id"]
+
+    # El segundo usuario no debe poder consultar la solicitud.
+    get_response = client.get(
+        f"/requests/{request_id}",
+        headers=other_auth_headers,
+    )
+
+    assert get_response.status_code == 404, get_response.text
+
+    # Tampoco debe poder eliminarla.
+    delete_response = client.delete(
+        f"/requests/{request_id}",
+        headers=other_auth_headers,
+    )
+
+    assert delete_response.status_code == 404, delete_response.text
+
+    # El propietario todavía debe poder consultarla.
+    owner_response = client.get(
+        f"/requests/{request_id}",
+        headers=auth_headers,
+    )
+
+    assert owner_response.status_code == 200, owner_response.text
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("descripcion", ""),
+        ("descripcion", "   "),
+        ("categoria", ""),
+        ("categoria", "   "),
+        ("ciudad", ""),
+        ("ciudad", "   "),
+    ],
+)
+def test_create_request_rejects_empty_text(
+    client,
+    auth_headers,
+    field,
+    value,
+):
+    payload = {
+        "descripcion": "Busco un cargador USB-C",
+        "categoria": "Electronicos",
+        "ciudad": "Cuenca",
+    }
+    payload[field] = value
+
+    response = client.post(
+        "/requests",
+        headers=auth_headers,
+        json=payload,
+    )
+
+    assert response.status_code == 422, response.text

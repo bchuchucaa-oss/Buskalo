@@ -61,3 +61,60 @@ def client(db_session):
         yield test_client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def test_user(client):
+    response = client.post(
+        "/auth/register",
+        json={
+            "email": "test@test.com",
+            "password": "test_user",
+            "full_name": "Test User",
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+@pytest.fixture
+def auth_headers(client, test_user):
+    response = client.post(
+        "/auth/login",
+        json={
+            "email": "test@test.com",
+            "password": "test_user",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+
+    token = response.json()["access_token"]
+
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def other_auth_headers(client):
+    response = client.post(
+        "/auth/register",
+        json={
+            "email": "other@test.com",
+            "password": "other_user_123",
+            "full_name": "Other User",
+        },
+    )
+    assert response.status_code == 201, response.text
+
+    response = client.post(
+        "/auth/login",
+        json={
+            "email": "other@test.com",
+            "password": "other_user_123",
+        },
+    )
+    assert response.status_code == 200, response.text
+
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
