@@ -1,8 +1,9 @@
+from datetime import datetime, timezone
 from uuid import UUID
 from sqlalchemy.orm import Session
 from fastapi import FastAPI,Depends,HTTPException, Query,Response,status
 from near_market.requests import *
-from near_market.schemas import MatchStatusUpdate, NearbyBusinessResponse, RequestCreate, RequestMatchResponse,RequestResponse,BusinessCreate, BusinessResponse
+from near_market.schemas import MatchResponseCreate, NearbyBusinessResponse, RequestCreate, RequestMatchResponse,RequestResponse,BusinessCreate, BusinessResponse
 from near_market.database import get_db
 from near_market import businesses as business_service
 from near_market.businesses import find_nearby_businesses
@@ -261,9 +262,9 @@ def get_request_matches(
 
 
 @app.patch("/request-matches/{match_id}")
-def update_match_status(
+def update_match_response(
     match_id: uuid.UUID,
-    payload: MatchStatusUpdate,
+    payload: MatchResponseCreate,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(auth.get_current_user),
 ):
@@ -291,11 +292,22 @@ def update_match_status(
             detail="Esta coincidencia ya fue respondida",
         )
 
+    if payload.status == "available" and payload.price is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Debes indicar el precio cuando el producto o servicio está disponible",
+        )
+
     match.status = payload.status
+    match.price = payload.price
+    match.notes = payload.notes
+    match.responded_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(match)
 
     return {
         "id": str(match.id),
         "status": match.status,
+        "price": payload.price,
+        "notes": payload.notes,
     }

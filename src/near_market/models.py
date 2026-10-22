@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 import uuid
 from datetime import datetime
 from geoalchemy2 import Geometry
@@ -12,7 +13,8 @@ from sqlalchemy import (
     String,
     Uuid,
     func,
-    UniqueConstraint
+    UniqueConstraint,
+    Numeric
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -219,6 +221,21 @@ class RequestBusinessMatchModel(Base):
         nullable=False,
         default="pending",
         server_default="pending",
+    )
+
+    price: Mapped[Decimal | None] = mapped_column(
+        Numeric(10, 2),
+        nullable=True,
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True,
+    )
+
+    responded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
