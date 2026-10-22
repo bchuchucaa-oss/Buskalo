@@ -27,9 +27,10 @@ def test_create_request_valid(client, auth_headers):
     }
 
 
-def test_create_request_blank_description():
+def test_create_request_blank_description(auth_headers):
     response = client.post(
         "/requests",
+        headers= auth_headers,
         json={"descripcion": "   ",
               "ciudad":"Cuenca",
               "categoria":"Electronicos"}
@@ -45,9 +46,10 @@ def test_create_request_blank_description():
     )
 
 
-def test_create_request_description_too_long():
+def test_create_request_description_too_long(auth_headers):
     response = client.post(
         "/requests",
+        headers = auth_headers,
         json={"descripcion": "a" * 201}
     )
 
@@ -61,7 +63,7 @@ def test_health_returns_ok(client):
     assert response.json() == {"status": "ok"}
 
 
-def test_create_request_and_list_it(client):
+def test_create_request_and_list_it(client, auth_headers):
     payload = {
         "descripcion": "Busco un cargador USB-C",
         "categoria": "Electronica",
@@ -69,7 +71,7 @@ def test_create_request_and_list_it(client):
     }
 
     # 1. Crear una solicitud
-    create_response = client.post("/requests", json=payload)
+    create_response = client.post("/requests", headers= auth_headers,json=payload)
 
     assert create_response.status_code == 201
 
@@ -91,7 +93,7 @@ def test_create_request_and_list_it(client):
     assert requests[0]["id"] == created_request["id"]
 
 
-def test_get_and_delete_request(client):
+def test_get_and_delete_request(client, auth_headers):
     payload = {
         "descripcion": "Necesito un electricista",
         "categoria": "Servicios",
@@ -99,13 +101,13 @@ def test_get_and_delete_request(client):
     }
 
     # Crear una solicitud para esta prueba
-    create_response = client.post("/requests", json=payload)
+    create_response = client.post("/requests", headers=auth_headers, json=payload)
     assert create_response.status_code == 201
 
     request_id = create_response.json()["id"]
 
     # Consultar por UUID
-    get_response = client.get(f"/requests/{request_id}")
+    get_response = client.get(f"/requests/{request_id}", headers= auth_headers)
     assert get_response.status_code == 200
     assert get_response.json()["id"] == request_id
 

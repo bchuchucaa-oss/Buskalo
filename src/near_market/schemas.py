@@ -1,4 +1,5 @@
 
+from typing import Literal
 import uuid
 from uuid import UUID
 from datetime import datetime
@@ -10,6 +11,8 @@ class RequestCreate(BaseModel):
     descripcion: str = Field(min_length=1, max_length=200)
     categoria: str = Field(min_length=1, max_length=50)
     ciudad: str = Field(min_length=1, max_length=100)
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
 
     @field_validator("descripcion", "categoria", "ciudad")
     @classmethod
@@ -27,6 +30,8 @@ class RequestResponse(BaseModel):
     descripcion: str
     categoria: str
     ciudad: str
+    latitude: float | None = None
+    longitude: float | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -57,5 +62,17 @@ class BusinessResponse(BaseModel):
     city: str
     latitude: float | None
     longitude: float | None
-
     model_config = ConfigDict(from_attributes=True)
+
+class NearbyBusinessResponse(BaseModel):
+    business: BusinessResponse
+    distance_meters: float = Field(ge=0)
+
+class RequestMatchResponse(BaseModel):
+    business_id: uuid.UUID
+    business_name: str
+    distance_meters: float
+    status: str
+
+class MatchStatusUpdate(BaseModel):
+    status: Literal["accepted", "rejected"]

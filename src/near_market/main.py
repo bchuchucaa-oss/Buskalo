@@ -1,11 +1,11 @@
 from uuid import UUID
 from sqlalchemy.orm import Session
-from fastapi import FastAPI,Depends,HTTPException,Response,status
+from fastapi import FastAPI,Depends,HTTPException, Query,Response,status
 from near_market.requests import *
-from near_market.schemas import RequestCreate,RequestResponse,BusinessCreate, BusinessResponse
+from near_market.schemas import MatchStatusUpdate, NearbyBusinessResponse, RequestCreate, RequestMatchResponse,RequestResponse,BusinessCreate, BusinessResponse
 from near_market.database import get_db
 from near_market import businesses as business_service
-
+from near_market.businesses import find_nearby_businesses
 from near_market import auth
 from near_market.auth_schemas import (
     LoginRequest,
@@ -14,7 +14,8 @@ from near_market.auth_schemas import (
     UserResponse,
 )
 from near_market.database import get_db
-from near_market.models import UserModel
+from near_market.models import BusinessModel, UserModel
+from near_market.models import RequestBusinessMatchModel
 
 
 app = FastAPI()
@@ -29,12 +30,37 @@ def health_comprobation():
 def request_create_endpont(request: RequestCreate,
                            db:Session = Depends(get_db),
                            current_user: UserModel = Depends(auth.get_current_user)):
-    return create_request(db, request, user_id= current_user.id) 
+    new_request = create_request(db, request, user_id= current_user.id) 
+    nearby_businesses = find_nearby_businesses(
+        db=db,
+        latitude=request.latitude,
+        longitude=request.longitude,
+        radius_meters=5000,
+        limit=20,
+    )
+
+     # 3. Preparar las coincidencias
+    matches = [
+        RequestBusinessMatchModel(
+            request_id=new_request.id,
+            business_id=result["business"].id,
+            distance_meters=result["distance_meters"],
+            status="pending",
+        )
+        for result in nearby_businesses
+    ]
+
+    # 4. Guardar todas las coincidencias juntas
+    if matches:
+        db.add_all(matches)
+        db.commit()
+
+    return new_request
  
 @app.get('/requests', response_model= list[RequestResponse ], status_code=status.HTTP_200_OK)
 def get_requests_all_endpoint(db:Session = Depends(get_db),
                                current_user: UserModel = Depends(auth.get_current_user)):
-   response= get_all_requests(db, current_user)
+   response= get_all_requests(db, current_user.id)
    return response
 
 @app.get('/requests/{request_id}',response_model=RequestResponse)
@@ -112,6 +138,34 @@ def get_businesses(
         owner_id=current_user.id,
     )
 
+@app.get(
+    "/businesses/nearby",
+    response_model=list[NearbyBusinessResponse],
+)
+def get_nearby_businesses_endpoint(
+    latitude: float = Query(ge=-90, le=90),
+    longitude: float = Query(ge=-180, le=180),
+    radius_meters: int = Query(default=5000, ge=1, le=50000),
+    limit: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user=Depends(auth.get_current_user),
+):
+    results = business_service.find_nearby_businesses(
+        db=db,
+        latitude=latitude,
+        longitude=longitude,
+        radius_meters=radius_meters,
+        limit=limit,
+    )
+
+    return [
+        {
+            "business": result["business"],
+            "distance_meters": result["distance_meters"],
+        }
+        for result in results
+    ]
+
 
 @app.get("/businesses/{business_id}", response_model=BusinessResponse)
 def get_business(
@@ -153,3 +207,95 @@ def delete_business_endpoint(
         owner_id=current_user.id,
     )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.get(
+    "/requests/{request_id}/matches",
+    response_model=list[RequestMatchResponse],
+)
+def get_request_matches(
+    request_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(auth.get_current_user),
+):
+    # Verificar que la solicitud exista y pertenezca al usuario
+    request_record = db.scalar(
+        select(RequestModel).where(
+            RequestModel.id == request_id,
+            RequestModel.user_id == current_user.id,
+        )
+    )
+
+    if request_record is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Solicitud no encontrada",
+        )
+
+    # Consultar las coincidencias y obtener el nombre del negocio
+    results = db.execute(
+        select(
+            RequestBusinessMatchModel.business_id,
+            BusinessModel.name.label("business_name"),
+            RequestBusinessMatchModel.distance_meters,
+            RequestBusinessMatchModel.status,
+        )
+        .join(
+            BusinessModel,
+            BusinessModel.id == RequestBusinessMatchModel.business_id,
+        )
+        .where(RequestBusinessMatchModel.request_id == request_id)
+        .order_by(RequestBusinessMatchModel.distance_meters)
+    ).all()
+
+    return [
+        RequestMatchResponse(
+            business_id=row.business_id,
+            business_name=row.business_name,
+            distance_meters=row.distance_meters,
+            status=row.status,
+        )
+        for row in results
+    ]
+
+
+
+@app.patch("/request-matches/{match_id}")
+def update_match_status(
+    match_id: uuid.UUID,
+    payload: MatchStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(auth.get_current_user),
+):
+    match = db.scalar(
+        select(RequestBusinessMatchModel)
+        .join(
+            BusinessModel,
+            BusinessModel.id == RequestBusinessMatchModel.business_id,
+        )
+        .where(
+            RequestBusinessMatchModel.id == match_id,
+            BusinessModel.owner_id == current_user.id,
+        )
+    )
+
+    if match is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Coincidencia no encontrada",
+        )
+
+    if match.status != "pending":
+        raise HTTPException(
+            status_code=409,
+            detail="Esta coincidencia ya fue respondida",
+        )
+
+    match.status = payload.status
+    db.commit()
+    db.refresh(match)
+
+    return {
+        "id": str(match.id),
+        "status": match.status,
+    }

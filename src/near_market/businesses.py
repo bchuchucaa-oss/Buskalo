@@ -2,8 +2,10 @@
 import uuid
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
+from geoalchemy2.elements import WKTElement
+from geoalchemy2 import Geography
 
 from near_market.models import BusinessModel
 from near_market.schemas import BusinessCreate
@@ -22,6 +24,10 @@ def create_business(
         city=business.city,
         latitude=business.latitude,
         longitude=business.longitude,
+        location = build_location(
+            business.latitude,
+            business.longitude
+        )
     )
 
     db.add(new_business)
@@ -79,7 +85,10 @@ def update_business(
     business.city = data.city
     business.latitude = data.latitude
     business.longitude = data.longitude
-
+    business.location = build_location(
+        data.latitude,
+        business.longitude
+    )
     db.commit()
     db.refresh(business)
 
@@ -95,3 +104,62 @@ def delete_business(
 
     db.delete(business)
     db.commit()
+
+def build_location(
+    latitude: float | None,
+    longitude: float | None,
+):
+    if latitude is None or longitude is None:
+        return None
+
+    return WKTElement(
+        f"POINT({longitude} {latitude})",
+        srid=4326,
+    )
+
+def find_nearby_businesses(
+    db: Session,
+    latitude: float,
+    longitude: float,
+    radius_meters: int = 5000,
+    limit: int = 20,
+):
+    """Find businesses within a radius, ordered by distance."""
+
+    origin = func.ST_SetSRID(
+        func.ST_MakePoint(longitude, latitude),
+        4326,
+    ).cast(Geography(srid=4326))
+
+    business_location = BusinessModel.location.cast(
+        Geography(srid=4326)
+    )
+
+    distance = func.ST_Distance(
+        business_location,
+        origin,
+    ).label("distance_meters")
+
+    statement = (
+        select(BusinessModel, distance)
+        .where(BusinessModel.location.is_not(None))
+        .where(
+            func.ST_DWithin(
+                business_location,
+                origin,
+                radius_meters,
+            )
+        )
+        .order_by(distance)
+        .limit(limit)
+    )
+
+    results = db.execute(statement).all()
+
+    return [
+        {
+            "business": business,
+            "distance_meters": round(float(distance_meters), 2),
+        }
+        for business, distance_meters in results
+    ]

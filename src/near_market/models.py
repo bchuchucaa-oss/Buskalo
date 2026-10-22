@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from geoalchemy2 import Geometry
 
 from sqlalchemy import (
     DateTime,
@@ -11,6 +12,7 @@ from sqlalchemy import (
     String,
     Uuid,
     func,
+    UniqueConstraint
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -104,6 +106,11 @@ class BusinessModel(Base):
         nullable=True,
     )
 
+    location = mapped_column(
+    Geometry(geometry_type="POINT", srid=4326),
+    nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -146,6 +153,20 @@ class RequestModel(Base):
         nullable=False,
     )
 
+    latitud: Mapped[float] = mapped_column(
+        Float,
+        nullable=False
+    )
+
+    longitud: Mapped[float] = mapped_column(
+            Float,
+            nullable=False
+        )
+
+    location: Mapped[object | None] = mapped_column(
+    Geometry(geometry_type="POINT", srid=4326),
+    nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -154,4 +175,54 @@ class RequestModel(Base):
 
     user: Mapped[UserModel | None] = relationship(
         back_populates="requests",
+    )
+
+
+class RequestBusinessMatchModel(Base):
+    __tablename__ = "request_business_matches"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "request_id",
+            "business_id",
+            name="uq_request_business_match",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    request_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("requests.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    business_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("businesses.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    distance_meters: Mapped[float] = mapped_column(
+        Float,
+        nullable=False,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="pending",
+        server_default="pending",
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )

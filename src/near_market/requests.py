@@ -8,14 +8,24 @@ from sqlalchemy.orm import Session
 from near_market.models import RequestModel
 from near_market.schemas import RequestCreate
 
+from geoalchemy2 import WKTElement
 
 def create_request(db: Session, request: RequestCreate, user_id: uuid.UUID) -> RequestModel:
+
+    location = WKTElement(
+            f"POINT({request.longitude} {request.latitude})",
+            srid=4326,
+        )
+    
     new_request = RequestModel(
         id=uuid.uuid4(),
         user_id= user_id,
         descripcion=request.descripcion,
         categoria=request.categoria,
         ciudad=request.ciudad,
+        latitud = request.latitude,
+        longitud = request.longitude,
+        location= location
     )
 
     db.add(new_request)
