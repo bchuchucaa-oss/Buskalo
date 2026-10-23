@@ -4,7 +4,7 @@ import uuid
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from near_market.models.models import RequestModel
+from near_market.models import RequestModel
 from near_market.schemas import RequestCreate
 
 from geoalchemy2 import WKTElement

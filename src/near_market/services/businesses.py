@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from geoalchemy2.elements import WKTElement
 from geoalchemy2 import Geography
 
-from near_market.models.models import BusinessModel
+from near_market.models import BusinessModel
 from near_market.schemas import BusinessCreate
 
 
@@ -87,7 +87,7 @@ def update_business(
     business.longitude = data.longitude
     business.location = build_location(
         data.latitude,
-        business.longitude
+        data.longitude
     )
     db.commit()
     db.refresh(business)

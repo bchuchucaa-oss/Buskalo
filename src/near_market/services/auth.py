@@ -1,6 +1,5 @@
 
 import uuid
-
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -10,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from near_market.database import get_db
 from near_market.models.models import UserModel
-from near_market.security import (
+from near_market.services.security import (
     create_access_token,
     decode_access_token,
     hash_password,
@@ -18,9 +17,7 @@ from near_market.security import (
 )
 from near_market.settings import settings
 
-
 bearer_scheme = HTTPBearer(auto_error=False)
-
 
 def register_user( email: str, password: str, full_name: str, db: Session = Depends(get_db)):
     normalized_email = email.strip().lower()
