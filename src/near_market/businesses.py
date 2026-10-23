@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from geoalchemy2.elements import WKTElement
 from geoalchemy2 import Geography
 
-from near_market.models import BusinessModel
-from near_market.schemas import BusinessCreate
+from near_market.models.models import BusinessModel
+from near_market.schemas.schema import BusinessCreate
 
 
 def create_business(

@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 from fastapi import FastAPI,Depends,HTTPException, Query,Response,status
 from near_market.requests import *
-from near_market.schemas import MatchResponseCreate, NearbyBusinessResponse, RequestCreate, RequestMatchResponse,RequestResponse,BusinessCreate, BusinessResponse
+from near_market.schemas.schema import MatchResponseCreate, NearbyBusinessResponse, RequestCreate, RequestMatchResponse,RequestResponse,BusinessCreate, BusinessResponse
 from near_market.database import get_db
 from near_market import businesses as business_service
 from near_market.businesses import find_nearby_businesses
@@ -15,8 +15,8 @@ from near_market.auth_schemas import (
     UserResponse,
 )
 from near_market.database import get_db
-from near_market.models import BusinessModel, UserModel
-from near_market.models import RequestBusinessMatchModel
+from near_market.models.models import BusinessModel, UserModel
+from near_market.models.models import RequestBusinessMatchModel
 
 
 app = FastAPI()

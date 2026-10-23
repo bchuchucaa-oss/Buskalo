@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from near_market.database import get_db
-from near_market.models import UserModel
+from near_market.models.models import UserModel
 from near_market.security import (
     create_access_token,
     decode_access_token,

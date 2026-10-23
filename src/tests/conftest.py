@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from near_market.main import app
 from near_market.database import get_db
 from near_market.database import Base
-from near_market import models  # Registra los modelos en Base.metadata
+from near_market.models import models  # Registra los modelos en Base.metadata
 
 load_dotenv()
 
