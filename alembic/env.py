@@ -3,8 +3,7 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from near_market.database import Base
-from near_market.models import models
-from near_market.models import AlternativeOffer
+from near_market import models
 from alembic import context
 from near_market.settings import settings
 
