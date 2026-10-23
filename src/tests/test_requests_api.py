@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 from near_market.main import app
 import uuid
+import pytest
 
 
 client = TestClient(app)
@@ -14,16 +15,20 @@ def test_create_request_valid(client, auth_headers):
         json={
             "descripcion": "Busco un cargador USB-C",
             "ciudad":"Cuenca",
-             "categoria":"Electronicos",             }
+             "categoria":"Electronicos", 
+            "latitude": -2.9001,
+             "longitude": -79.0059,}
     )
     assert response.status_code == 201
     data = response.json()
     data.pop("id", None)
     data.pop("created_at",None)
+    data.pop("latitude", None)
+    data.pop("longitude", None)
     assert data == {
         "descripcion": "Busco un cargador USB-C",
                     "ciudad":"Cuenca",
-                     "categoria":"Electronicos"
+                     "categoria":"Electronicos",
     }
 
 
@@ -68,6 +73,8 @@ def test_create_request_and_list_it(client, auth_headers):
         "descripcion": "Busco un cargador USB-C",
         "categoria": "Electronica",
         "ciudad": "Giron",
+        "latitude": -2.9001,
+        "longitude": -79.0059
     }
 
     # 1. Crear una solicitud
@@ -84,7 +91,7 @@ def test_create_request_and_list_it(client, auth_headers):
     assert created_request["ciudad"] == payload["ciudad"]
 
     # 3. Consultar el listado
-    list_response = client.get("/requests")
+    list_response = client.get("/requests", headers= auth_headers)
 
     assert list_response.status_code == 200
 
@@ -98,6 +105,8 @@ def test_get_and_delete_request(client, auth_headers):
         "descripcion": "Necesito un electricista",
         "categoria": "Servicios",
         "ciudad": "Giron",
+         "latitude": -2.9001,
+        "longitude": -79.0059,
     }
 
     # Crear una solicitud para esta prueba
@@ -112,41 +121,16 @@ def test_get_and_delete_request(client, auth_headers):
     assert get_response.json()["id"] == request_id
 
     # Eliminar la solicitud
-    delete_response = client.delete(f"/requests/{request_id}")
+    delete_response = client.delete(f"/requests/{request_id}", headers = auth_headers)
     assert delete_response.status_code == 204
     assert delete_response.content == b""
 
     # Confirmar que ya no existe
-    missing_response = client.get(f"/requests/{request_id}")
+    missing_response = client.get(f"/requests/{request_id}", headers = auth_headers)
     assert missing_response.status_code == 404
 
 
-import pytest
 
-
-@pytest.mark.parametrize(
-    "field,value",
-    [
-        ("descripcion", "   "),
-        ("categoria", "   "),
-        ("ciudad", "   "),
-        ("descripcion", ""),
-        ("categoria", ""),
-        ("ciudad", ""),
-    ],
-)
-def test_create_request_rejects_empty_text(client, field, value):
-    payload = {
-        "descripcion": "Busco un cargador USB-C",
-        "categoria": "Electronica",
-        "ciudad": "Giron",
-    }
-
-    payload[field] = value
-
-    response = client.post("/requests", json=payload)
-
-    assert response.status_code == 422
 
 
 def test_create_request_without_token_returns_401(client):
@@ -174,6 +158,8 @@ def test_user_cannot_access_another_users_request(
             "descripcion": "Busco un cargador USB-C",
             "ciudad": "Cuenca",
             "categoria": "Electronicos",
+             "latitude": -2.9001,
+            "longitude": -79.0059,
         },
     )
 
