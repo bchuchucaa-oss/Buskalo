@@ -78,3 +78,8 @@ class BusinessModel(Base):
         "UserModel",
         back_populates="businesses",
     )
+    
+    business_categories: Mapped[list["BusinessCategoryModel"]] = relationship(
+    back_populates="business",
+    cascade="all, delete-orphan",
+    )

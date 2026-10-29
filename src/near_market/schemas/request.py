@@ -26,8 +26,12 @@ class RequestResponse(BaseModel):
     descripcion: str
     categoria: str
     ciudad: str
-    latitude: float | None = None
-    longitude: float | None = None
+    latitude: float = Field(
+        validation_alias="latitud",
+    )
+    longitude: float = Field(
+        validation_alias="longitud",
+    )
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

@@ -221,3 +221,24 @@ def test_create_request_rejects_empty_text(
     )
 
     assert response.status_code == 422, response.text
+
+def test_create_request_returns_coordinates(client, auth_headers):
+    payload = {
+        "descripcion": "Necesito un electricista",
+        "categoria": "Electricidad",
+        "ciudad": "Girón",
+        "latitude": -2.9001,
+        "longitude": -79.0059,
+    }
+
+    response = client.post(
+        "/requests",
+        json=payload,
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 201, response.text
+
+    data = response.json()
+    assert data["latitude"] == payload["latitude"]
+    assert data["longitude"] == payload["longitude"]

@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 from near_market.services.auth import get_current_user
 from near_market.database import get_db
 from near_market.models import UserModel
-from near_market.schemas import BusinessCreate, BusinessResponse
+from near_market.schemas import (
+    BusinessCreate,
+    BusinessResponse,
+    NearbyBusinessResponse,
+)
 from near_market.services.businesses import (
     create_business,
     get_all_businesses,
@@ -45,7 +49,7 @@ def get_businesses_endpoint(
     return get_all_businesses(db, current_user.id)
 
 
-@router.get("/nearby")
+@router.get("/nearby", response_model=list[NearbyBusinessResponse])
 def get_nearby_businesses_endpoint(
     latitude: float = Query(..., ge=-90, le=90),
     longitude: float = Query(..., ge=-180, le=180),
