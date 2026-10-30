@@ -83,3 +83,9 @@ class BusinessModel(Base):
     back_populates="business",
     cascade="all, delete-orphan",
     )
+
+    matches: Mapped[list["RequestBusinessMatchModel"]] = relationship(
+    "RequestBusinessMatchModel",
+    back_populates="business",
+    cascade="all, delete-orphan",
+    )

@@ -3,12 +3,16 @@ import uuid
 
 from fastapi import HTTPException
 from sqlalchemy import select, func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from geoalchemy2.elements import WKTElement
 from geoalchemy2 import Geography
+from near_market.schemas import BusinessCreate,BusinessUpdate
 
-from near_market.models import BusinessModel
-from near_market.schemas import BusinessCreate
+from near_market.models import (
+    BusinessModel,
+    CategoryModel,
+    BusinessCategoryModel,
+)
 
 
 def create_business(
@@ -16,25 +20,56 @@ def create_business(
     business: BusinessCreate,
     owner_id: uuid.UUID,
 ) -> BusinessModel:
-    new_business = BusinessModel(
-        owner_id=owner_id,
-        name=business.name,
-        description=business.description,
-        address=business.address,
-        city=business.city,
-        latitude=business.latitude,
-        longitude=business.longitude,
-        location = build_location(
-            business.latitude,
-            business.longitude
+    try:
+        # Buscar las categorías solicitadas.
+        statement = select(CategoryModel).where(
+            CategoryModel.id.in_(business.category_ids)
         )
-    )
+        categories = list(db.scalars(statement).all())
 
-    db.add(new_business)
-    db.commit()
-    db.refresh(new_business)
+        # Comprobar que todas las categorías existan.
+        if len(categories) != len(business.category_ids):
+            raise HTTPException(
+                status_code=422,
+                detail="Una o más categorías no existen",
+            )
 
-    return new_business
+        # Crear el negocio.
+        new_business = BusinessModel(
+            owner_id=owner_id,
+            name=business.name,
+            description=business.description,
+            address=business.address,
+            city=business.city,
+            latitude=business.latitude,
+            longitude=business.longitude,
+            location=build_location(
+                business.latitude,
+                business.longitude,
+            ),
+        )
+
+        db.add(new_business)
+        db.flush()
+        for category in categories:
+
+        # Asociar las categorías seleccionadas.
+            db.add(
+                BusinessCategoryModel(
+                    business_id=new_business.id,
+                    category_id=category.id,
+                )
+            )
+
+        db.commit()
+        db.refresh(new_business)
+
+        return new_business
+
+    except Exception:
+        db.rollback()
+        raise
+
 
 
 def get_all_businesses(
@@ -42,11 +77,14 @@ def get_all_businesses(
     owner_id: uuid.UUID,
 ) -> list[BusinessModel]:
     statement = (
-        select(BusinessModel)
-        .where(BusinessModel.owner_id == owner_id)
-        .order_by(BusinessModel.created_at.desc())
+    select(BusinessModel)
+    .options(
+        selectinload(BusinessModel.business_categories)
+        .selectinload(BusinessCategoryModel.category)
     )
-
+    .where(BusinessModel.owner_id == owner_id)
+    .order_by(BusinessModel.created_at.desc())
+    )
     return list(db.scalars(statement).all())
 
 
@@ -55,9 +93,16 @@ def get_business_by_id(
     business_id: uuid.UUID,
     owner_id: uuid.UUID,
 ) -> BusinessModel:
-    statement = select(BusinessModel).where(
+    statement = (
+    select(BusinessModel)
+    .options(
+        selectinload(BusinessModel.business_categories)
+        .selectinload(BusinessCategoryModel.category)
+    )
+    .where(
         BusinessModel.id == business_id,
         BusinessModel.owner_id == owner_id,
+    )
     )
 
     business = db.scalar(statement)
@@ -71,11 +116,12 @@ def get_business_by_id(
     return business
 
 
+
 def update_business(
     db: Session,
     business_id: uuid.UUID,
     owner_id: uuid.UUID,
-    data: BusinessCreate,
+    data: BusinessUpdate,
 ) -> BusinessModel:
     business = get_business_by_id(db, business_id, owner_id)
 
@@ -87,12 +133,14 @@ def update_business(
     business.longitude = data.longitude
     business.location = build_location(
         data.latitude,
-        data.longitude
+        data.longitude,
     )
+
     db.commit()
     db.refresh(business)
 
     return business
+
 
 
 def delete_business(
@@ -140,8 +188,13 @@ def find_nearby_businesses(
         origin,
     ).label("distance_meters")
 
+    
     statement = (
         select(BusinessModel, distance)
+        .options(
+            selectinload(BusinessModel.business_categories)
+            .selectinload(BusinessCategoryModel.category)
+        )
         .where(BusinessModel.location.is_not(None))
         .where(
             func.ST_DWithin(
@@ -149,6 +202,59 @@ def find_nearby_businesses(
                 origin,
                 radius_meters,
             )
+        )
+        .order_by(distance)
+        .limit(limit)
+    )
+
+    results = db.execute(statement).all()
+
+    return [
+        {
+            "business": business,
+            "distance_meters": round(float(distance_meters), 2),
+        }
+        for business, distance_meters in results
+    ]
+
+
+
+def find_matching_businesses(
+    db: Session,
+    category_id: uuid.UUID,
+    latitude: float,
+    longitude: float,
+    radius_meters: int = 5000,
+    limit: int = 20,
+):
+    origin = func.ST_SetSRID(
+        func.ST_MakePoint(longitude, latitude),
+        4326,
+    ).cast(Geography(srid=4326))
+
+    business_location = BusinessModel.location.cast(
+        Geography(srid=4326)
+    )
+
+    distance = func.ST_Distance(
+        business_location,
+        origin,
+    ).label("distance_meters")
+
+    statement = (
+        select(BusinessModel, distance)
+        .join(
+            BusinessCategoryModel,
+            BusinessCategoryModel.business_id == BusinessModel.id,
+        )
+        .where(
+            BusinessCategoryModel.category_id == category_id,
+            BusinessModel.location.is_not(None),
+            func.ST_DWithin(
+                business_location,
+                origin,
+                radius_meters,
+            ),
         )
         .order_by(distance)
         .limit(limit)

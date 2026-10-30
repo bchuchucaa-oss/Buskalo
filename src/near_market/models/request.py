@@ -38,9 +38,15 @@ class RequestModel(Base):
         nullable=False,
     )
 
-    categoria: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
+    category_id: Mapped[uuid.UUID] = mapped_column(
+    Uuid(as_uuid=True),
+    ForeignKey("categories.id"),
+    nullable=False,
+    index=True,
+    )
+
+    category: Mapped["CategoryModel"] = relationship(
+        "CategoryModel",
     )
 
     ciudad: Mapped[str] = mapped_column(
@@ -71,4 +77,10 @@ class RequestModel(Base):
     user: Mapped[UserModel | None] = relationship(
         "UserModel",
         back_populates="requests",
+    )
+
+    matches: Mapped[list["RequestBusinessMatchModel"]] = relationship(
+        "RequestBusinessMatchModel",
+        back_populates="request",
+        cascade="all, delete-orphan",
     )

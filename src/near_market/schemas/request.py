@@ -1,16 +1,18 @@
 
 import uuid
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 
 class RequestCreate(BaseModel):
     descripcion: str = Field(min_length=1, max_length=200)
-    categoria: str = Field(min_length=1, max_length=50)
+    category_id: uuid.UUID
     ciudad: str = Field(min_length=1, max_length=100)
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
 
-    @field_validator("descripcion", "categoria", "ciudad")
+    @field_validator("descripcion", "ciudad")
     @classmethod
     def reject_empty_text(cls, value: str) -> str:
         value = value.strip()
@@ -24,14 +26,10 @@ class RequestCreate(BaseModel):
 class RequestResponse(BaseModel):
     id: uuid.UUID
     descripcion: str
-    categoria: str
+    category_id: uuid.UUID
     ciudad: str
-    latitude: float = Field(
-        validation_alias="latitud",
-    )
-    longitude: float = Field(
-        validation_alias="longitud",
-    )
+    latitude: float = Field(validation_alias="latitud")
+    longitude: float = Field(validation_alias="longitud")
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

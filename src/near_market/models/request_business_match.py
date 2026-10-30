@@ -1,6 +1,6 @@
 
 from __future__ import annotations
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from near_market.database import Base
 from decimal import Decimal
 from datetime import datetime
@@ -79,4 +79,13 @@ class RequestBusinessMatchModel(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
+    )
+    request: Mapped["RequestModel"] = relationship(
+        "RequestModel",
+        back_populates="matches",
+    )
+
+    business: Mapped["BusinessModel"] = relationship(
+        "BusinessModel",
+        back_populates="matches",
     )

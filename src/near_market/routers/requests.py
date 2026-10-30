@@ -27,7 +27,7 @@ def create_request_endpoint(
     request: RequestCreate,
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
-):
+)-> RequestResponse:
     return create_request(db, request, current_user.id)
 
 
@@ -61,4 +61,4 @@ def delete_request_endpoint(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
-    delete_by_id( request_id, db, current_user.id)
+    delete_by_id( request_id = request_id, db = db, user_id = current_user.id)

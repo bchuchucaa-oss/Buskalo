@@ -75,15 +75,16 @@ def update_match_response(
     current_user: UserModel = Depends(get_current_user),
 ):
     match = db.scalar(
-        select(RequestBusinessMatchModel)
-        .join(
-            BusinessModel,
-            BusinessModel.id == RequestBusinessMatchModel.business_id,
-        )
-        .where(
-            RequestBusinessMatchModel.id == match_id,
-            BusinessModel.owner_id == current_user.id,
-        )
+    select(RequestBusinessMatchModel)
+    .join(
+        BusinessModel,
+        BusinessModel.id == RequestBusinessMatchModel.business_id,
+    )
+    .where(
+        RequestBusinessMatchModel.id == match_id,
+        BusinessModel.owner_id == current_user.id,
+    )
+    .with_for_update()
     )
 
     if match is None:
@@ -104,17 +105,22 @@ def update_match_response(
             detail="Debes indicar el precio cuando el producto o servicio está disponible",
         )
 
-    match.status = payload.status
-    match.price = payload.price
-    match.notes = payload.notes
-    match.responded_at = datetime.now(timezone.utc)
+    try:
+        match.status = payload.status
+        match.price = payload.price
+        match.notes = payload.notes
+        match.responded_at = datetime.now(timezone.utc)
 
-    db.commit()
-    db.refresh(match)
+        db.commit()
+        db.refresh(match)
+
+    except Exception:
+        db.rollback()
+        raise
 
     return {
         "id": str(match.id),
         "status": match.status,
-        "price": payload.price,
-        "notes": payload.notes,
+        "price": match.price,
+        "notes": match.notes,
     }

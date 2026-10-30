@@ -1,8 +1,9 @@
 from .alternative_offer import AlternativeOfferCreate,AlternativeOfferResponse
 from .auth import UserCreate, UserResponse, LoginRequest, TokenResponse
-from .business import BusinessCreate, BusinessResponse, NearbyBusinessResponse
+from .business import BusinessCreate, BusinessResponse, NearbyBusinessResponse, BusinessUpdate
 from .request_match import RequestMatchResponse, MatchResponseCreate
 from .request import RequestCreate, RequestResponse
+from .match import MatchRequestResponse, BusinessMatchesListResponse, BusinessMatchResponse
 
 __all__ = [
     "BusinessCreate",
@@ -17,5 +18,9 @@ __all__ = [
     "UserCreate",
     "UserResponse",
     "LoginRequest", 
-    "TokenResponse"
+    "TokenResponse",
+    "BusinessUpdate",
+    "MatchRequestResponse",
+    "BusinessMatchesListResponse",
+    "BusinessMatchResponse"
 ]
