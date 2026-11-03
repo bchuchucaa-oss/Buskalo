@@ -110,16 +110,30 @@ class CreditTransactionModel(Base):
 
     __table_args__ = (
          CheckConstraint(
-        "credits != 0",
-        name="ck_credit_transaction_nonzero",
+        """
+        (
+            transaction_type = 'purchase'
+            AND credits > 0
+            AND purchase_id IS NOT NULL
+            AND match_id IS NULL
+        )
+        OR
+        (
+            transaction_type = 'unlock'
+            AND credits < 0
+            AND match_id IS NOT NULL
+            AND purchase_id IS NULL
+        )
+        """,
+        name="ck_credit_transaction_valid_operation",
         ),
         UniqueConstraint(
             "purchase_id",
             name="uq_credit_transaction_purchase",
         ),
         UniqueConstraint(
-        "match_id",
-        name="uq_credit_transaction_match",
+            "match_id",
+            name="uq_credit_transaction_match",
         ),
     )
 
