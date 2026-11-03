@@ -89,3 +89,7 @@ class RequestBusinessMatchModel(Base):
         "BusinessModel",
         back_populates="matches",
     )
+    unlocked_at: Mapped[datetime | None] = mapped_column(
+    DateTime(timezone=True),
+    nullable=True,
+    )

@@ -1,9 +1,11 @@
 
 from fastapi import FastAPI, Depends, status
 
+from near_market.routers import admin
 from near_market.services import auth
 from near_market.database import get_db
 from near_market.models import UserModel
+from near_market.routers import credits
 from near_market.schemas import (
     LoginRequest,
     TokenResponse,
@@ -15,7 +17,6 @@ from near_market.routers.requests import router as requests_router
 from near_market.routers.business import router as businesses_router
 from near_market.routers.request_matches import router as request_matches_router
 
-
 app = FastAPI(title="NearMarket API")
 
 
@@ -23,8 +24,8 @@ app = FastAPI(title="NearMarket API")
 app.include_router(requests_router)
 app.include_router(businesses_router)
 app.include_router(request_matches_router)
-
-
+app.include_router(admin.router)
+app.include_router(credits.router)
 @app.get("/health", status_code=status.HTTP_200_OK)
 def health_comprobation():
     return {"status": "ok"}

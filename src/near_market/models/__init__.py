@@ -6,6 +6,10 @@ from .request_business_match import RequestBusinessMatchModel
 from .alternative_offer import AlternativeOfferModel
 from .category import CategoryModel
 from .business_category import BusinessCategoryModel
+from near_market.models.credit import (
+    CreditPurchaseModel,
+    CreditTransactionModel,
+)
 
 __all__ = [
     "UserModel",
@@ -14,5 +18,7 @@ __all__ = [
     "RequestBusinessMatchModel",
     "AlternativeOfferModel",
     "CategoryModel",
-    "BusinessCategoryModel"
+    "BusinessCategoryModel",
+    "CreditPurchaseModel",
+    "CreditTransactionModel"
 ]

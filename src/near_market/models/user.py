@@ -9,11 +9,8 @@ from sqlalchemy import (
     String,
     Uuid,
     func,
+    Boolean
 )
-
-# from near_market.models.business import BusinessModel
-# from near_market.models.request import RequestModel
-
 class UserModel(Base):
     __tablename__ = "users"
 
@@ -55,3 +52,24 @@ class UserModel(Base):
         "RequestModel",
         back_populates="user",
     )
+    
+        
+    credit_purchases: Mapped[list["CreditPurchaseModel"]] = relationship(
+        "CreditPurchaseModel",
+        foreign_keys="CreditPurchaseModel.user_id",
+        back_populates="user",
+    )
+
+    credit_transactions: Mapped[list["CreditTransactionModel"]] = relationship(
+        "CreditTransactionModel",
+        back_populates="user",
+    )
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
+
+
+

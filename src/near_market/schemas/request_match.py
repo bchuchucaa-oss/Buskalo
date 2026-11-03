@@ -1,14 +1,25 @@
 
+import uuid
 from decimal import Decimal
 from typing import Literal
-import uuid
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    Field, 
+    field_validator, 
+    model_validator)
 
 class RequestMatchResponse(BaseModel):
-    business_id: uuid.UUID
-    business_name: str
-    distance_meters: float
+    match_id: uuid.UUID
     status: str
+    price: Decimal | None
+    city: str
+    distance_range: str
+    unlocked: bool
+
+    business_name: str | None = None
+    address: str | None = None
+    phone: str | None = None
+    whatsapp: str | None = None
 
 class MatchResponseCreate(BaseModel):
     status: Literal["available", "unavailable"]

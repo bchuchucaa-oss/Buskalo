@@ -94,3 +94,15 @@ def  get_current_user(
         raise unauthorized
 
     return user
+
+def get_current_admin(
+    current_user: UserModel = Depends(get_current_user),
+) -> UserModel:
+
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permisos de administrador",
+        )
+
+    return current_user

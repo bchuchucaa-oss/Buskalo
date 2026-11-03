@@ -52,6 +52,16 @@ class BusinessModel(Base):
         String(100),
         nullable=False,
     )
+    
+    phone: Mapped[str | None] = mapped_column(
+    String(20),
+    nullable=True,
+    )
+
+    whatsapp: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+    )
 
     latitude: Mapped[float | None] = mapped_column(
         Float,
