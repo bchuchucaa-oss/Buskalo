@@ -7,6 +7,7 @@ def test_request_location_matches_coordinates_and_uses_wgs84(
     client,
     auth_headers,
     db_session,
+    test_category
 ):
     latitude = -3.16
     longitude = -79.14
@@ -15,8 +16,7 @@ def test_request_location_matches_coordinates_and_uses_wgs84(
         headers=auth_headers,
         json={
             "descripcion": "Necesito un electricista",
-            "categoria": "Servicios",
-            "ciudad": "Girón",
+            "category_id": str(test_category.id),            "ciudad": "Girón",
             "latitude": latitude,
             "longitude": longitude,
         },

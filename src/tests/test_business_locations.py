@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from near_market.models import BusinessModel
 
 
-def _business_payload(name, latitude, longitude):
+def _business_payload(name, latitude, longitude, test_category):
     return {
         "name": name,
         "description": None,
@@ -12,6 +12,7 @@ def _business_payload(name, latitude, longitude):
         "city": "Girón",
         "latitude": latitude,
         "longitude": longitude,
+        "category_ids": [str(test_category.id)]
     }
 
 
@@ -28,11 +29,13 @@ def test_business_location_stays_in_sync_on_create_and_update(
     client,
     auth_headers,
     db_session,
+    test_category
 ):
     created = client.post(
         "/businesses",
         headers=auth_headers,
-        json=_business_payload("Tienda", -3.16, -79.14),
+        json=_business_payload("Tienda", -3.16, -79.14, test_category),
+        
     )
 
     assert created.status_code == 201, created.text
@@ -42,7 +45,7 @@ def test_business_location_stays_in_sync_on_create_and_update(
     updated = client.put(
         f"/businesses/{business['id']}",
         headers=auth_headers,
-        json=_business_payload("Tienda actualizada", -3.17, -79.15),
+        json=_business_payload("Tienda actualizada", -3.17, -79.15, test_category),
     )
 
     assert updated.status_code == 200, updated.text
@@ -54,6 +57,7 @@ def test_business_location_stays_in_sync_on_create_and_update(
 def test_nearby_businesses_apply_radius_and_distance_order(
     client,
     auth_headers,
+    test_category
 ):
     origin_latitude = -3.16
     origin_longitude = -79.14
@@ -67,7 +71,7 @@ def test_nearby_businesses_apply_radius_and_distance_order(
         response = client.post(
             "/businesses",
             headers=auth_headers,
-            json=_business_payload(name, latitude, longitude),
+            json=_business_payload(name, latitude, longitude, test_category),
         )
         assert response.status_code == 201, response.text
 
@@ -125,8 +129,9 @@ def test_business_rejects_partial_coordinates(
     auth_headers,
     latitude,
     longitude,
+    test_category
 ):
-    payload = _business_payload("Tienda", -3.16, -79.14)
+    payload = _business_payload("Tienda", -3.16, -79.14, test_category)
     payload["latitude"] = latitude
     payload["longitude"] = longitude
 
@@ -146,8 +151,9 @@ def test_business_requires_coordinates(
     client,
     auth_headers,
     missing_coordinate,
+    test_category
 ):
-    payload = _business_payload("Tienda", -3.16, -79.14)
+    payload = _business_payload("Tienda", -3.16, -79.14, test_category)
 
     if missing_coordinate in ("latitude", "both"):
         payload.pop("latitude")
@@ -177,11 +183,12 @@ def test_business_rejects_out_of_range_coordinates(
     auth_headers,
     latitude,
     longitude,
+    test_category
 ):
     response = client.post(
         "/businesses",
         headers=auth_headers,
-        json=_business_payload("Tienda", latitude, longitude),
+        json=_business_payload("Tienda", latitude, longitude, test_category),
     )
 
     assert response.status_code == 422, response.text

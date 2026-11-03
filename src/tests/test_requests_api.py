@@ -1,13 +1,9 @@
-from fastapi.testclient import TestClient
 from near_market.main import app
-import uuid
 import pytest
 
 
-client = TestClient(app)
 
-
-def test_create_request_valid(client, auth_headers):
+def test_create_request_valid(client, auth_headers, test_category):
 
     response = client.post(
         "/requests",
@@ -15,7 +11,7 @@ def test_create_request_valid(client, auth_headers):
         json={
             "descripcion": "Busco un cargador USB-C",
             "ciudad":"Cuenca",
-             "categoria":"Electronicos", 
+             "category_id": str(test_category.id), 
             "latitude": -2.9001,
              "longitude": -79.0059,}
     )
@@ -28,17 +24,17 @@ def test_create_request_valid(client, auth_headers):
     assert data == {
         "descripcion": "Busco un cargador USB-C",
                     "ciudad":"Cuenca",
-                     "categoria":"Electronicos",
+                     "category_id":str(test_category.id),
     }
 
 
-def test_create_request_blank_description(auth_headers):
+def test_create_request_blank_description(client,auth_headers,test_category):
     response = client.post(
         "/requests",
         headers= auth_headers,
         json={"descripcion": "   ",
               "ciudad":"Cuenca",
-              "categoria":"Electronicos"}
+              "category_id":str(test_category.id)}
     )
 
     assert response.status_code == 422
@@ -51,7 +47,7 @@ def test_create_request_blank_description(auth_headers):
     )
 
 
-def test_create_request_description_too_long(auth_headers):
+def test_create_request_description_too_long(client,auth_headers):
     response = client.post(
         "/requests",
         headers = auth_headers,
@@ -68,10 +64,10 @@ def test_health_returns_ok(client):
     assert response.json() == {"status": "ok"}
 
 
-def test_create_request_and_list_it(client, auth_headers):
+def test_create_request_and_list_it(client, auth_headers, test_category):
     payload = {
         "descripcion": "Busco un cargador USB-C",
-        "categoria": "Electronica",
+        "category_id": str(test_category.id),
         "ciudad": "Giron",
         "latitude": -2.9001,
         "longitude": -79.0059
@@ -87,7 +83,7 @@ def test_create_request_and_list_it(client, auth_headers):
     # 2. Verificar que la API devuelve un identificador
     assert "id" in created_request
     assert created_request["descripcion"] == payload["descripcion"]
-    assert created_request["categoria"] == payload["categoria"]
+    assert created_request["category_id"] == payload["category_id"]
     assert created_request["ciudad"] == payload["ciudad"]
 
     # 3. Consultar el listado
@@ -100,10 +96,10 @@ def test_create_request_and_list_it(client, auth_headers):
     assert requests[0]["id"] == created_request["id"]
 
 
-def test_get_and_delete_request(client, auth_headers):
+def test_get_and_delete_request(client, auth_headers, test_category):
     payload = {
         "descripcion": "Necesito un electricista",
-        "categoria": "Servicios",
+        "category_id": str(test_category.id),
         "ciudad": "Giron",
          "latitude": -2.9001,
         "longitude": -79.0059,
@@ -150,6 +146,7 @@ def test_user_cannot_access_another_users_request(
     client,
     auth_headers,
     other_auth_headers,
+    test_category
 ):
     create_response = client.post(
         "/requests",
@@ -157,7 +154,7 @@ def test_user_cannot_access_another_users_request(
         json={
             "descripcion": "Busco un cargador USB-C",
             "ciudad": "Cuenca",
-            "categoria": "Electronicos",
+            "category_id": str(test_category.id),
              "latitude": -2.9001,
             "longitude": -79.0059,
         },
@@ -206,10 +203,11 @@ def test_create_request_rejects_empty_text(
     auth_headers,
     field,
     value,
+    test_category
 ):
     payload = {
         "descripcion": "Busco un cargador USB-C",
-        "categoria": "Electronicos",
+        "category_id": str(test_category.id),
         "ciudad": "Cuenca",
     }
     payload[field] = value
@@ -222,10 +220,10 @@ def test_create_request_rejects_empty_text(
 
     assert response.status_code == 422, response.text
 
-def test_create_request_returns_coordinates(client, auth_headers):
+def test_create_request_returns_coordinates(client, auth_headers, test_category):
     payload = {
         "descripcion": "Necesito un electricista",
-        "categoria": "Electricidad",
+        "category_id": str(test_category.id),
         "ciudad": "Girón",
         "latitude": -2.9001,
         "longitude": -79.0059,

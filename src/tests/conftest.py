@@ -10,7 +10,8 @@ from fastapi.testclient import TestClient
 from near_market.main import app
 from near_market.database import get_db
 from near_market.database import Base
-from near_market.models import models  # Registra los modelos en Base.metadata
+from near_market.models import models
+from near_market.models.category import CategoryModel  # Registra los modelos en Base.metadata
 
 load_dotenv()
 
@@ -94,6 +95,14 @@ def auth_headers(client, test_user):
 
     return {"Authorization": f"Bearer {token}"}
 
+@pytest.fixture
+def test_category(db_session):
+    category = CategoryModel(name="Plomería")
+    db_session.add(category)
+    db_session.commit()
+    db_session.refresh(category)
+
+    return category
 
 @pytest.fixture
 def other_auth_headers(client):
