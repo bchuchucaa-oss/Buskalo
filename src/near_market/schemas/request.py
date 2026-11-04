@@ -1,4 +1,5 @@
 
+from decimal import Decimal
 import uuid
 from datetime import datetime
 
@@ -33,3 +34,20 @@ class RequestResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class BusinessRequestResponse(BaseModel):
+    match_id: uuid.UUID
+    request_id: uuid.UUID
+    business_id: uuid.UUID
+    business_name: str
+
+    descripcion: str
+    ciudad: str
+    category_name: str
+
+    status: str
+    distance_meters: float
+    price: Decimal | None
+    notes: str | None
+    created_at: datetime

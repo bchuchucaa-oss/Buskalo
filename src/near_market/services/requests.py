@@ -1,9 +1,8 @@
 
 import uuid
-
 from fastapi import HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from geoalchemy2 import WKTElement
 
 from near_market.models import (
@@ -11,6 +10,7 @@ from near_market.models import (
     CategoryModel,
     RequestBusinessMatchModel,
 )
+from near_market.models.business import BusinessModel
 from near_market.schemas import RequestCreate
 from near_market.services.businesses import find_matching_businesses
 
@@ -126,3 +126,46 @@ def create_request(
         raise
 
     return new_request
+
+def get_business_requests(
+    db: Session,
+    owner_id: uuid.UUID,
+    status: str | None = None,
+):
+    stmt = (
+        select(RequestBusinessMatchModel)
+        .join(BusinessModel)
+        .join(RequestModel)
+        .join(CategoryModel, RequestModel.category_id == CategoryModel.id)
+        .where(BusinessModel.owner_id == owner_id)
+    ).options(
+    joinedload(RequestBusinessMatchModel.business),
+    joinedload(RequestBusinessMatchModel.request).joinedload(
+        RequestModel.category
+    ),
+    )
+
+    if status:
+        stmt = stmt.where(RequestBusinessMatchModel.status == status)
+
+    matches = db.scalars(
+        stmt.order_by(RequestBusinessMatchModel.created_at.desc())
+    ).all()
+
+    return [
+        {
+            "match_id": match.id,
+            "request_id": match.request_id,
+            "business_id": match.business_id,
+            "business_name": match.business.name,
+            "descripcion": match.request.descripcion,
+            "ciudad": match.request.ciudad,
+            "category_name": match.request.category.name,
+            "status": match.status,
+            "distance_meters": match.distance_meters,
+            "price": match.price,
+            "notes": match.notes,
+            "created_at": match.created_at
+        }
+        for match in matches
+    ]

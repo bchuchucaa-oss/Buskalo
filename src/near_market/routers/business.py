@@ -3,6 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
+from near_market.schemas.request import BusinessRequestResponse
 from near_market.services.matches import get_business_matches
 from near_market.services.auth import get_current_user
 from near_market.database import get_db
@@ -22,6 +23,7 @@ from near_market.services.businesses import (
     delete_business,
     find_nearby_businesses,
 )
+from near_market.services.requests import get_business_requests
 
 router = APIRouter(prefix="/businesses", tags=["Businesses"])
 
@@ -95,6 +97,22 @@ def get_my_business_matches_endpoint(
         offset=offset,
     )
 
+@router.get(
+    "/me/requests",
+    response_model=list[BusinessRequestResponse],
+    status_code=status.HTTP_200_OK,
+)
+def get_my_business_requests(
+    request_status: str | None = Query(default=None, alias="status"),
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    return get_business_requests(
+        db=db,
+        owner_id=current_user.id,
+        status=request_status,
+    )
+
 @router.put("/{business_id}", response_model=BusinessResponse)
 def update_business_endpoint(
     business_id: UUID,
@@ -120,3 +138,4 @@ def delete_business_endpoint(
     current_user: UserModel = Depends(get_current_user),
 ):
     delete_business(db, business_id, current_user.id)
+

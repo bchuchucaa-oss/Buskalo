@@ -65,11 +65,3 @@ def get_me(
     current_user: UserModel = Depends(auth.get_current_user),
 ):
     return current_user
-
-print("RUTAS REGISTRADAS:")
-
-for route in app.routes:
-    print(
-        getattr(route, "path", None),
-        type(route).__name__,
-    )

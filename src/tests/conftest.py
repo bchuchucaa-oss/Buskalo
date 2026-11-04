@@ -14,7 +14,8 @@ from near_market.database import Base
 from near_market.models import models
 from near_market.models.category import CategoryModel
 from near_market.models.request import RequestModel
-from near_market.models.request_business_match import RequestBusinessMatchModel  # Registra los modelos en Base.metadata
+from near_market.models.request_business_match import RequestBusinessMatchModel 
+ # Registra los modelos en Base.metadata
 
 load_dotenv()
 
@@ -112,20 +113,20 @@ def other_user(client):
     assert response.status_code == 201, response.text
     return response.json()
 
-@pytest.fixture
-def other_auth_headers(client, other_user):
-    response = client.post(
-        "/auth/login",
-        json={
-            "email": "other@test.com",
-            "password": "other_user_123",
-        },
-    )
+# @pytest.fixture
+# def other_auth_headers(client, other_user):
+#     response = client.post(
+#         "/auth/login",
+#         json={
+#             "email": "other@test.com",
+#             "password": "other_user_123",
+#         },
+#     )
 
-    assert response.status_code == 200, response.text
+#     assert response.status_code == 200, response.text
 
-    token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+#     token = response.json()["access_token"]
+#     return {"Authorization": f"Bearer {token}"}
 
 @pytest.fixture
 def test_category(db_session):
