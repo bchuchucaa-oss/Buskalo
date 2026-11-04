@@ -22,6 +22,7 @@ def create_access_token(subject: str) -> str:
 
     payload = {
         "sub": subject,
+        "type": "access",
         "iat": now,
         "exp": now + timedelta(
             minutes=settings.access_token_expire_minutes
@@ -36,8 +37,42 @@ def create_access_token(subject: str) -> str:
 
 
 def decode_access_token(token: str) -> dict:
-    return jwt.decode(
+    payload = jwt.decode(
         token,
         settings.jwt_secret_key,
         algorithms=[settings.jwt_algorithm],
     )
+
+    if payload.get("type") != "access":
+        raise jwt.InvalidTokenError("Invalid token type")
+
+    return payload
+
+def create_websocket_token(subject: str) -> str:
+    now = datetime.now(timezone.utc)
+
+    payload = {
+        "sub": subject,
+        "type": "websocket",
+        "iat": now,
+        "exp": now + timedelta(minutes=2),
+    }
+
+    return jwt.encode(
+        payload,
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+
+
+def decode_websocket_token(token: str) -> dict:
+    payload = jwt.decode(
+        token,
+        settings.jwt_secret_key,
+        algorithms=[settings.jwt_algorithm],
+    )
+
+    if payload.get("type") != "websocket":
+        raise jwt.InvalidTokenError("Invalid token type")
+
+    return payload

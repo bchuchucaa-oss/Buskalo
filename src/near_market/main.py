@@ -16,7 +16,7 @@ from near_market.schemas import (
 from near_market.routers.requests import router as requests_router
 from near_market.routers.business import router as businesses_router
 from near_market.routers.request_matches import router as request_matches_router
-
+from near_market.routers.websocket import router as websocket_router
 app = FastAPI(title="NearMarket API")
 
 
@@ -26,6 +26,7 @@ app.include_router(businesses_router)
 app.include_router(request_matches_router)
 app.include_router(admin.router)
 app.include_router(credits.router)
+app.include_router(websocket_router)
 @app.get("/health", status_code=status.HTTP_200_OK)
 def health_comprobation():
     return {"status": "ok"}
@@ -64,3 +65,11 @@ def get_me(
     current_user: UserModel = Depends(auth.get_current_user),
 ):
     return current_user
+
+print("RUTAS REGISTRADAS:")
+
+for route in app.routes:
+    print(
+        getattr(route, "path", None),
+        type(route).__name__,
+    )

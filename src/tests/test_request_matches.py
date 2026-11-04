@@ -2,7 +2,7 @@ import uuid
 
 from sqlalchemy import func
 
-from near_market.models.credit import CreditTransactionModel
+from near_market.models.credit import CreditPurchaseModel, CreditTransactionModel
 
 
 def test_business_cannot_respond_to_another_business_match(
@@ -120,8 +120,20 @@ def test_unlock_contact_consumes_only_one_credit(
     test_match.price = 25.00
 
     # Darle un crédito al cliente
-    transaction = CreditTransactionModel(
+    purchase = CreditPurchaseModel(
         user_id=uuid.UUID(test_user["id"]),
+        package_type="individual",
+        amount=1.00,
+        credits=1,
+        status="approved",
+        )
+
+    db_session.add(purchase)
+    db_session.flush()
+
+    transaction = CreditTransactionModel(
+        user_id=purchase.user_id,
+        purchase_id=purchase.id,
         credits=1,
         transaction_type="purchase",
         description="Crédito para pruebas",
