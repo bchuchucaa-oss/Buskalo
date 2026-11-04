@@ -1,0 +1,27 @@
+
+# Entornos virtuales
+.venv/
+venv/
+
+# Variables y secretos
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Tests y cachés
+src/tests/
+.pytest_cache/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db

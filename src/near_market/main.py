@@ -1,11 +1,12 @@
 
 from fastapi import FastAPI, Depends, status
-
+from fastapi.middleware.cors import CORSMiddleware
 from near_market.routers import admin
 from near_market.services import auth
 from near_market.database import get_db
 from near_market.models import UserModel
 from near_market.routers import credits
+from near_market.settings import settings
 from near_market.schemas import (
     LoginRequest,
     TokenResponse,
@@ -18,7 +19,20 @@ from near_market.routers.business import router as businesses_router
 from near_market.routers.request_matches import router as request_matches_router
 from near_market.routers.websocket import router as websocket_router
 app = FastAPI(title="NearMarket API")
+import os
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        origin.strip()
+        for origin in settings.cors_origins.split(",")
+        if origin.strip()
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 # Routers principales
 app.include_router(requests_router)

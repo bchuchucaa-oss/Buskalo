@@ -41,6 +41,7 @@ def decode_access_token(token: str) -> dict:
         token,
         settings.jwt_secret_key,
         algorithms=[settings.jwt_algorithm],
+        options={"require": ["exp", "sub", "iat"]}
     )
 
     if payload.get("type") != "access":
@@ -70,6 +71,7 @@ def decode_websocket_token(token: str) -> dict:
         token,
         settings.jwt_secret_key,
         algorithms=[settings.jwt_algorithm],
+        options={"require": ["exp", "sub", "iat"]}
     )
 
     if payload.get("type") != "websocket":

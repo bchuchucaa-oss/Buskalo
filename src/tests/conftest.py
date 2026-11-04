@@ -1,36 +1,43 @@
-
-import os
 import uuid
-
 import pytest
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
-
+from sqlalchemy.engine import make_url
+from near_market.settings import settings
 from near_market.main import app
 from near_market.database import get_db
 from near_market.database import Base
-from near_market.models import models
 from near_market.models.category import CategoryModel
 from near_market.models.request import RequestModel
 from near_market.models.request_business_match import RequestBusinessMatchModel 
  # Registra los modelos en Base.metadata
 
-load_dotenv()
 
 @pytest.fixture
 def reset_database():
-    database_url = os.getenv("TEST_DATABASE_URL")
+    database_url = settings.test_database_url
 
     if not database_url:
+        pytest.fail("Falta TEST_DATABASE_URL en la configuración.")
+
+    test_url = make_url(database_url)
+    app_url = make_url(settings.database_url)
+
+    if test_url.database != "nearmarket_test":
         pytest.fail(
-            "Falta TEST_DATABASE_URL. Revisa la configuracion del archivo .env."
+            "Por seguridad, TEST_DATABASE_URL debe apuntar "
+            "a la base de datos nearmarket_test."
         )
 
-    if not database_url.endswith("/nearmarket_test"):
+    if (
+        test_url.host == app_url.host
+        and test_url.port == app_url.port
+        and test_url.database == app_url.database
+    ):
         pytest.fail(
-            "Por seguridad, TEST_DATABASE_URL debe apuntar a nearmarket_test."
+            "La base de datos de pruebas no puede ser la misma "
+            "que la base de datos principal."
         )
 
     engine = create_engine(database_url)
@@ -42,7 +49,6 @@ def reset_database():
     finally:
         Base.metadata.drop_all(bind=engine)
         engine.dispose()
-
 
 @pytest.fixture
 def db_session(reset_database):
